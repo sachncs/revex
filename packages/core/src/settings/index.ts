@@ -1,0 +1,231 @@
+/**
+ * Zod-validated settings tree.
+ *
+ * Loaded once at startup from env + profile via `loadSettings()`. The
+ * shape mirrors the legacy Python `Settings` dataclass tree, but
+ * collapsed: pgvector/memory/dedicated stores are dropped, and
+ * isolation collapses to `RowLevel` only (locked decisions).
+ *
+ * Unknown env vars are reported as a warning, not an error — keeps
+ * forward-compat with users who copy `.env.example` verbatim.
+ */
+
+import { z } from 'zod';
+
+import { RevexError } from '../errors/index.js';
+
+const nonEmpty = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} must not be empty`);
+
+const Hex = (label: string, expectedBytes: number) =>
+  z
+    .string()
+    .refine((s) => /^[0-9a-f]+$/i.test(s), `${label} must be hex`)
+    .refine((s) => s.length === expectedBytes * 2, `${label} must be ${expectedBytes} bytes`);
+
+export const Isolation = {
+  RowLevel: 'row_level',
+} as const;
+
+export type IsolationValue = (typeof Isolation)[keyof typeof Isolation];
+
+const VectorBackend = {
+  SqliteVec: 'sqlite_vec',
+} as const;
+export { VectorBackend };
+export type VectorBackendValue = (typeof VectorBackend)[keyof typeof VectorBackend];
+
+const EmbedderProvider = {
+  OpenAI: 'openai',
+  FeatureHashing: 'feature_hashing',
+  LiteLLM: 'litellm',
+  Cohere: 'cohere',
+} as const;
+export type EmbedderProviderValue = (typeof EmbedderProvider)[keyof typeof EmbedderProvider];
+
+const HybridConfigSchema = z.object({
+  denseWeight: z.number().min(0).max(1).default(0.6),
+  sparseWeight: z.number().min(0).max(1).default(0.4),
+  rrfK: z.number().int().min(1).default(60),
+  colbert: z.boolean().default(false),
+});
+
+const TraceCorpusConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  representation: z.enum(['struct', 'semantic', 'reflect']).default('semantic'),
+  topK: z.number().int().min(1).max(50).default(5),
+});
+
+const OrderingStrategySchema = z.enum(['standard', 'reverse', 'intra_doc']);
+
+const MultimodalConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  embeddingModel: z.string().default('text-embedding-3-large'),
+  embeddingDim: z.number().int().min(64).max(4096).default(3072),
+});
+
+const OrchestratorConfigSchema = z.object({
+  mode: z.enum(['graph', 'swarm', 'workflow']).default('graph'),
+  ordering: OrderingStrategySchema.default('standard'),
+  topK: z.number().int().min(1).max(200).default(10),
+  reranker: z.enum(['identity', 'bge', 'cohere', 'llm_judge']).default('identity'),
+  multimodal: MultimodalConfigSchema.default({}),
+  traceCorpus: TraceCorpusConfigSchema.default({}),
+});
+
+const AuthConfigSchema = z.object({
+  jwtSecret: z
+    .string()
+    .min(32, 'REVEX_JWT_SECRET must be at least 32 characters; generate one with `openssl rand -base64 48`.')
+    .max(1024),
+  jwtAlgorithm: z.enum(['HS256', 'HS384', 'HS512']).default('HS256'),
+  tokenTtlSeconds: z.number().int().min(60).default(60 * 60 * 24),
+  bcryptRounds: z.number().int().min(4).max(15).default(10),
+});
+
+const TenantsConfigSchema = z.object({
+  isolation: z.literal(Isolation.RowLevel).default(Isolation.RowLevel),
+});
+
+const VectorStoreConfigSchema = z.object({
+  backend: z.literal(VectorBackend.SqliteVec).default(VectorBackend.SqliteVec),
+  path: nonEmpty('vectorStore.path').default('./.revex/revex.db'),
+  embeddingDim: z.number().int().min(64).max(4096).default(3072),
+});
+
+const EmbedderConfigSchema = z.object({
+  provider: z.nativeEnum(EmbedderProvider).default(EmbedderProvider.OpenAI),
+  model: nonEmpty('embedder.model').default('text-embedding-3-large'),
+  apiKey: z.string().optional(),
+  batchSize: z.number().int().min(1).max(2048).default(64),
+});
+
+const LlmConfigSchema = z.object({
+  provider: z
+    .enum(['openai', 'minimax', 'litellm', 'anthropic', 'bedrock'])
+    .default('openai'),
+  model: nonEmpty('llm.model').default('gpt-4.1'),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
+  temperature: z.number().min(0).max(2).default(0),
+});
+
+const TelemetryConfigSchema = z.object({
+  provider: z.enum(['noop', 'langfuse', 'otel']).default('noop'),
+  langfusePublicKey: z.string().optional(),
+  langfuseSecretKey: z.string().optional(),
+  langfuseBaseUrl: z.string().url().optional(),
+  otelEndpoint: z.string().url().optional(),
+});
+
+const SecretsConfigSchema = z.object({
+  tenantSecretsKey: Hex('secrets.tenantSecretsKey', 32),
+});
+
+export const SettingsSchema = z.object({
+  auth: AuthConfigSchema,
+  tenants: TenantsConfigSchema,
+  vectorStore: VectorStoreConfigSchema,
+  embedder: EmbedderConfigSchema,
+  llm: LlmConfigSchema,
+  hybrid: HybridConfigSchema.default({}),
+  orchestrator: OrchestratorConfigSchema.default({}),
+  telemetry: TelemetryConfigSchema.default({}),
+  secrets: SecretsConfigSchema,
+});
+
+export type Settings = z.infer<typeof SettingsSchema>;
+
+/**
+ * Load and validate the settings tree from a flat env object.
+ *
+ * Unknown env vars are surfaced as warnings so users who copy
+ * `.env.example` do not see hard failures on every new key.
+ */
+export const loadSettings = (env: Readonly<Record<string, string | undefined>>): Settings => {
+  const bool = (v: string | undefined): boolean | undefined => {
+    if (v === undefined) return undefined;
+    return v === 'true' || v === '1';
+  };
+  const num = (v: string | undefined): number | undefined => {
+    if (v === undefined || v === '') return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const raw = {
+    auth: {
+      jwtSecret: env['REVEX_JWT_SECRET'],
+      jwtAlgorithm: env['REVEX_JWT_ALGORITHM'],
+      tokenTtlSeconds: num(env['REVEX_TOKEN_TTL_SECONDS']),
+      bcryptRounds: num(env['REVEX_BCRYPT_ROUNDS']),
+    },
+    tenants: { isolation: env['REVEX_ISOLATION'] },
+    vectorStore: {
+      backend: env['REVEX_VECTOR_BACKEND'],
+      path: env['REVEX_VECTOR_PATH'],
+      embeddingDim: num(env['REVEX_VECTOR_EMBEDDING_DIM']),
+    },
+    embedder: {
+      provider: env['REVEX_EMBEDDER_PROVIDER'],
+      model: env['REVEX_EMBEDDER_MODEL'],
+      apiKey: env['REVEX_EMBEDDER_API_KEY'] ?? env['OPENAI_API_KEY'],
+      batchSize: num(env['REVEX_EMBEDDER_BATCH_SIZE']),
+    },
+    llm: {
+      provider: env['REVEX_LLM_PROVIDER'],
+      model: env['REVEX_LLM_MODEL'],
+      apiKey: env['REVEX_LLM_API_KEY'] ?? env['OPENAI_API_KEY'],
+      baseUrl: env['REVEX_LLM_BASE_URL'],
+      temperature: num(env['REVEX_LLM_TEMPERATURE']),
+    },
+    hybrid: {
+      denseWeight: num(env['REVEX_HYBRID_DENSE_WEIGHT']),
+      sparseWeight: num(env['REVEX_HYBRID_SPARSE_WEIGHT']),
+      rrfK: num(env['REVEX_HYBRID_RRF_K']),
+      colbert: bool(env['REVEX_HYBRID_COLBERT']),
+    },
+    orchestrator: {
+      mode: env['REVEX_ORCHESTRATOR_MODE'],
+      ordering: env['REVEX_ORCHESTRATOR_ORDERING'],
+      topK: num(env['REVEX_ORCHESTRATOR_TOP_K']),
+      reranker: env['REVEX_ORCHESTRATOR_RERANKER'],
+      multimodal: {
+        enabled: bool(env['REVEX_MULTIMODAL_ENABLED']),
+        embeddingModel: env['REVEX_MULTIMODAL_EMBEDDING_MODEL'],
+        embeddingDim: num(env['REVEX_MULTIMODAL_EMBEDDING_DIM']),
+      },
+      traceCorpus: {
+        enabled: bool(env['REVEX_TRACE_CORPUS_ENABLED']),
+        representation: env['REVEX_TRACE_CORPUS_REPRESENTATION'],
+        topK: num(env['REVEX_TRACE_CORPUS_TOP_K']),
+      },
+    },
+    telemetry: {
+      provider: env['REVEX_TELEMETRY_PROVIDER'],
+      langfusePublicKey: env['REVEX_LANGFUSE_PUBLIC_KEY'],
+      langfuseSecretKey: env['REVEX_LANGFUSE_SECRET_KEY'],
+      langfuseBaseUrl: env['REVEX_LANGFUSE_BASE_URL'],
+      otelEndpoint: env['REVEX_OTEL_ENDPOINT'],
+    },
+    secrets: { tenantSecretsKey: env['REVEX_TENANT_SECRETS_KEY'] },
+  };
+
+  const known = new Set(Object.keys(raw));
+  for (const k of Object.keys(env)) {
+    if (k.startsWith('REVEX_') && !known.has(k)) {
+      console.warn(`[revex] unknown env var ${k}; ignoring`);
+    }
+  }
+
+  const parsed = SettingsSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
+    throw new RevexError('configuration_error', `invalid settings:\n${issues}`, {
+      details: { issues: parsed.error.issues },
+    });
+  }
+  return parsed.data;
+};

@@ -1,0 +1,8 @@
+title: "revex"
+description: "An end-to-end Python RAG framework featuring document ingestion, semantic search, conversational AI, multi-user retrieval, observability, structured outputs, and evaluation."
+theme: minima
+logo: /assets/logo.svg
+show_downloads: false
+permalink: /:title/
+plugins:
+  - jekyll-feed

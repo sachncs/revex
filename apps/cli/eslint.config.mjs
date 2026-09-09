@@ -1,0 +1,8 @@
+import base from '../../eslint.base.config.mjs';
+
+export default [
+  ...base,
+  {
+    ignores: ['dist/**', '.turbo/**', 'node_modules/**', '*.config.*'],
+  },
+];

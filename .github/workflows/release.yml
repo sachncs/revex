@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Rebuild native modules
+        run: pnpm rebuild -r better-sqlite3 @sqlite.org/sqlite-vec
+      - name: Build all packages
+        run: pnpm turbo run build
+      - name: Verify provenance + publish
+        run: |
+          set -euo pipefail
+          for pkg in core orchestrator api eval cli; do
+            echo "Publishing @revex/${pkg}@${GITHUB_REF_NAME#v}…"
+            pnpm --filter "@revex/${pkg}" publish --provenance --access public --no-git-checks
+          done
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

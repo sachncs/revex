@@ -1,0 +1,40 @@
+{
+  "name": "@revex/api",
+  "version": "1.1.0",
+  "description": "Revex HTTP API — Hono server with auth, query, streaming, onboarding.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@revex/core": "workspace:*",
+    "@revex/orchestrator": "workspace:*",
+    "better-sqlite3": "^12.11.1",
+    "hono": "4.6.10"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^26.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}

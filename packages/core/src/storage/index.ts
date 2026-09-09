@@ -1,0 +1,101 @@
+/**
+ * Storage barrel — every persistent store the framework owns.
+ *
+ * Phase 1 surface: users, documents, jobs, sessions, conversations.
+ * Document store does not own chunks (the vector store does) — it
+ * tracks metadata + lifecycle.
+ */
+
+export type { UserStore } from './users.js';
+export { SqliteUserStore } from './users.js';
+export type { SqliteUserStoreOptions } from './users.js';
+
+export type { DocumentStore } from './documents.js';
+export { SqliteDocumentStore } from './documents.js';
+export type { SqliteDocumentStoreOptions } from './documents.js';
+
+export type { JobQueue, JobRecord, JobStatusValue } from './jobs.js';
+export { JobStatus, SqliteJobQueue } from './jobs.js';
+export type { SqliteJobQueueOptions } from './jobs.js';
+
+export type { SessionRecord, SessionStore } from './sessions.js';
+export { SqliteSessionStore } from './sessions.js';
+export type { SqliteSessionStoreOptions } from './sessions.js';
+
+export type { ConversationStore, TurnInput } from './conversations.js';
+
+export type { PassphraseVault } from './passphrase-vault.js';
+export {
+  InMemoryPassphraseVault,
+  KmsPassphraseVault,
+  buildVault,
+} from './passphrase-vault.js';
+export { SqliteConversationStore } from './conversations.js';
+export type { SqliteConversationStoreOptions } from './conversations.js';
+
+export type { WorkspaceMember, WorkspaceMemberStore } from './workspace-member.js';
+export {
+  SqliteWorkspaceMemberStore,
+  WorkspaceMemberRole,
+  canManageWorkspace,
+  canIngest,
+  resolveRoleFor,
+} from './workspace-member.js';
+export type {
+  WorkspaceMemberRoleValue,
+  SqliteWorkspaceMemberStoreOptions,
+} from './workspace-member.js';
+
+export type { Role, RoleAssignment, Group, GroupMembership, RoleStore, GroupStore } from './groups.js';
+export { SqliteRoleStore, SqliteGroupStore } from './groups.js';
+export type { SqliteRoleStoreOptions, SqliteGroupStoreOptions } from './groups.js';
+
+export type {
+  DocumentPrincipal,
+  DocumentPrincipalType,
+  DocumentPrincipalStore,
+  DocumentPermissionValue,
+  GrantInput,
+  PrincipalRef,
+} from './document-principal.js';
+export {
+  DocumentPermission,
+  SqliteDocumentPrincipalStore,
+} from './document-principal.js';
+export type { SqliteDocumentPrincipalStoreOptions } from './document-principal.js';
+
+export type {
+  MemoryFact,
+  MemorySearchInput,
+  MemorySearchResult,
+  MemoryScopeValue,
+  RememberInput,
+  WorkspaceMemoryStore,
+} from './memory.js';
+export {
+  MemoryScope,
+  SqliteWorkspaceMemoryStore,
+} from './memory.js';
+export type { SqliteWorkspaceMemoryStoreOptions } from './memory.js';
+
+export type { FileStat, LocalFileStorage, LocalFileStorageOptions } from './local-file-storage.js';
+export {
+  FsLocalFileStorage,
+  InMemoryLocalFileStorage,
+  conversationSpilloverPrefix,
+  documentBytesKey,
+  sessionSnapshotKey,
+} from './local-file-storage.js';
+
+export type { AuditEvent, AuditEventKind, AuditEventStore } from './audit.js';
+export { SqliteAuditEventStore } from './audit.js';
+export type { SqliteAuditEventStoreOptions } from './audit.js';
+
+export type { FeedbackStore, FeedbackAggregate } from './feedback.js';
+export { SqliteFeedbackStore } from './feedback.js';
+export type { ImageStore, ImageSaveOptions } from './images.js';
+export { FsImageStore, InMemoryImageStore } from './images.js';
+export { DocumentVersionRegistry } from './document-versions.js';
+export type { DocumentVersionRecord, VersionRegistrySnapshot } from './document-versions.js';
+export { SnapshotWriter } from './snapshots.js';
+export type { SnapshotMetadata } from './snapshots.js';

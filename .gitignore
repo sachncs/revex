@@ -1,0 +1,27 @@
+# Node / TypeScript
+node_modules/
+dist/
+.turbo/
+.next/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.idea/
+.vscode/
+
+# Revex runtime defaults
+.revex/
+
+# Test artifacts
+.hypothesis/
+
+# mkdocs build output (deployed via .github/workflows/pages.yml)
+site/

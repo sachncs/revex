@@ -1,0 +1,81 @@
+/**
+ * Proxy to the @revex/api Hono server.
+ *
+ * EventSource cannot send Authorization headers, so the chat page
+ * cannot stream SSE directly with a bearer token. This route
+ * accepts a `x-revex-path` header from the client, forwards the
+ * request to the API server, and pipes the response back. Cookies
+ * (the JWT and the workspace passphrase) ride along on the
+ * server-to-server hop.
+ *
+ * Both `revex_session` and `revex_workspace_key` are HttpOnly +
+ * Secure + SameSite=Lax cookies issued by the API's
+ * `POST /v1/auth/{login,register}` response. The browser does not
+ * need (and must not be allowed) to write them from JavaScript;
+ * the API's Set-Cookie is the only path.
+ *
+ * Note: when streaming a request body (Next 16 fetch requires
+ * `duplex: 'half'` for non-null bodies), the upstream fetch is
+ * launched with `duplex: 'half'`. SSE responses stream back via
+ * `upstream.body` unchanged.
+ */
+
+import { cookies } from 'next/headers';
+
+const API_BASE = process.env['REVEX_API_BASE'] ?? 'http://localhost:3002';
+
+const cookieHeader = async (): Promise<string> => {
+  const cookieStore = await cookies();
+  return cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
+};
+
+const forwardedHeaders = async (
+  req: Request,
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+): Promise<HeadersInit> => {
+  const token = (await cookies()).get('revex_session')?.value;
+  const cookie = await cookieHeader();
+  const headers: Record<string, string> = {
+    'x-revex-forwarded': '1',
+  };
+  if (cookie) headers['cookie'] = cookie;
+  if (token) headers['authorization'] = `Bearer ${token}`;
+  /* Server-to-server callers (e.g. curl, tests) may pass an
+   * Authorization header directly; prefer it over the cookie. */
+  const incomingAuth = req.headers.get('authorization');
+  if (incomingAuth) headers['authorization'] = incomingAuth;
+  if (method !== 'GET') {
+    const contentType = req.headers.get('content-type');
+    if (contentType) headers['content-type'] = contentType;
+  }
+  return headers;
+};
+
+const proxy = async (
+  req: Request,
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+): Promise<Response> => {
+  const path = req.headers.get('x-revex-path') ?? '/';
+  const hasBody = method !== 'GET' && req.body !== null;
+  const init: RequestInit = {
+    method,
+    headers: await forwardedHeaders(req, method),
+    ...(hasBody
+      ? { body: req.body, duplex: 'half' as const }
+      : {}),
+  };
+  const upstream = await fetch(`${API_BASE}${path}`, init);
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: upstream.headers,
+  });
+};
+
+export const POST = (req: Request): Promise<Response> => proxy(req, 'POST');
+export const GET = (req: Request): Promise<Response> => proxy(req, 'GET');
+export const PATCH = (req: Request): Promise<Response> => proxy(req, 'PATCH');
+export const PUT = (req: Request): Promise<Response> => proxy(req, 'PUT');
+export const DELETE = (req: Request): Promise<Response> => proxy(req, 'DELETE');
