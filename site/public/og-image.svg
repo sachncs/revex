@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbfaf7"/>
+      <stop offset="100%" stop-color="#e0e7ff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="600" cy="315" r="280" fill="url(#glow)"/>
+
+  <g transform="translate(110, 200)">
+    <text x="0" y="0" font-family="ui-serif, Georgia, 'Times New Roman', serif"
+          font-style="italic" font-size="240" font-weight="700"
+          fill="url(#wordmark)" letter-spacing="-12">re</text>
+    <path d="M 270 -100 L 360 30 L 270 160"
+          fill="none" stroke="#f59e0b" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="385" y="0" font-family="ui-serif, Georgia, 'Times New Roman', serif"
+          font-style="italic" font-size="240" font-weight="700"
+          fill="url(#wordmark)" letter-spacing="-12">ex</text>
+  </g>
+
+  <text x="110" y="490" font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="44" font-weight="500" fill="#e0e7ff">
+    Hybrid retrieval for teams
+  </text>
+  <text x="110" y="545" font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="32" font-weight="400" fill="#a5b4fc" opacity="0.85">
+    vector · keyword · graph · memory · web — one engine
+  </text>
+
+  <g transform="translate(110, 575)">
+    <rect x="0" y="0" width="180" height="36" rx="18" fill="#1e1b4b" stroke="#f59e0b" stroke-width="1"/>
+    <text x="90" y="24" text-anchor="middle"
+          font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+          font-size="16" fill="#fbfaf7">sachncs/revex</text>
+  </g>
+  <g transform="translate(305, 575)">
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#1e1b4b" stroke="#a5b4fc" stroke-width="1"/>
+    <text x="120" y="24" text-anchor="middle"
+          font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+          font-size="16" fill="#fbfaf7">sachncs.github.io/revex</text>
+  </g>
+</svg>

@@ -22,6 +22,3 @@ coverage/
 
 # Test artifacts
 .hypothesis/
-
-# mkdocs build output (deployed via .github/workflows/pages.yml)
-site/

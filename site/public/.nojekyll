@@ -1,0 +1,1 @@
+# Disable Jekyll processing — Vite output uses _assets/, _astro/ style names that Jekyll strips

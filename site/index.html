@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16181f" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <title>Revex — Hybrid retrieval for teams</title>
+    <meta
+      name="description"
+      content="Revex is a hybrid retrieval engine for teams. Vector, keyword, graph, memory, and web — fused behind one policy-aware engine. Self-host or cloud."
+    />
+    <meta
+      name="keywords"
+      content="hybrid retrieval, RAG, vector search, BM25, GraphRAG, retrieval augmented generation, enterprise AI, policy-aware retrieval, Revex"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Revex" />
+    <meta property="og:title" content="Revex — Hybrid retrieval for teams" />
+    <meta
+      property="og:description"
+      content="Vector, keyword, graph, memory, and web — fused behind one policy-aware engine. Self-host or cloud."
+    />
+    <meta property="og:image" content="./og-image.svg" />
+    <meta property="og:url" content="https://sachncs.github.io/revex/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Revex — Hybrid retrieval for teams" />
+    <meta
+      name="twitter:description"
+      content="Vector, keyword, graph, memory, and web — fused behind one policy-aware engine."
+    />
+    <meta name="twitter:image" content="./og-image.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('revex-theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = stored || (prefersDark ? 'dark' : 'light');
+          if (theme === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="h-full">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-foreground focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-background"
+    >
+      Skip to main content
+    </a>
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

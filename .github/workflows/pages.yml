@@ -18,26 +18,39 @@ concurrency:
 jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    name: Deploy docs site
+    name: Build & deploy Revex site
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - uses: pnpm/action-setup@v4
         with:
-          python-version: '3.12'
-      - name: Install mkdocs-material
-        run: pip install --quiet mkdocs-material mkdocs-material[imaging]
-      - name: Build docs site (strict)
-        run: mkdocs build --strict
+          version: 9.12.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install site dependencies
+        working-directory: site
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build Revex site
+        working-directory: site
+        run: pnpm build
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: site/dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
